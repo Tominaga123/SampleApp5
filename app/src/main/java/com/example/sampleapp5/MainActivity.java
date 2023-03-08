@@ -12,7 +12,9 @@ import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.pm.PackageManager;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.app.Activity;
@@ -57,6 +59,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if (checkPermission()) {
+            Toast.makeText(this, "許可されています", Toast.LENGTH_SHORT).show();
+        } else {
+            requestPermission();
+        }
+
         textView = findViewById(R.id.text_view);
         imageView = findViewById(R.id.image_view);
 
@@ -77,11 +85,7 @@ public class MainActivity extends AppCompatActivity {
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (checkPermission()) {
-                    saveImage();
-                } else {
-                    requestPermission();
-                }
+                saveImage();
             }
         });
 
@@ -91,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // もし編集不可なら、編集可能な Bitmap を複製
                 if (!bmp.isMutable()) {
-                    System.out.println("編集可能にします");
                     bmp = bmp.copy(Bitmap.Config.ARGB_8888, true);
                 }
 
@@ -120,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void openImage(Intent resultData){
+    private void openImage(Intent resultData){
         ParcelFileDescriptor pfDescriptor = null;
         try{
             Uri uri = resultData.getData();
@@ -132,8 +135,9 @@ public class MainActivity extends AppCompatActivity {
             if(pfDescriptor != null){
                 FileDescriptor fileDescriptor = pfDescriptor.getFileDescriptor();
                 bmp = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+                ExifInterface exif = new ExifInterface(fileDescriptor);
+                rotateImage(exif);
                 pfDescriptor.close();
-                imageView.setImageBitmap(bmp);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -146,6 +150,41 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+    }
+
+    void rotateImage(ExifInterface exif){
+        try {
+            // Exif メタデータを取得
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+
+            // 回転角度を計算
+            int rotationAngle = 0;
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotationAngle = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotationAngle = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotationAngle = 270;
+                    break;
+                default:
+                    break;
+            }
+
+            // 画像を回転させる
+            if (rotationAngle != 0) {
+                Matrix matrix = new Matrix();
+                matrix.postRotate(rotationAngle);
+                bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // ImageView に Bitmap を設定
+        imageView.setImageBitmap(bmp);
     }
 
     private void saveImage() {
@@ -179,14 +218,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        return result == PackageManager.PERMISSION_GRANTED;
+        String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        int result;
+        int flag = 0;
+        for (String permission : permissions) {
+            result = ContextCompat.checkSelfPermission(this, permission);
+            if (result == PackageManager.PERMISSION_GRANTED) {
+                flag ++;
+                System.out.println(permission + "は許可されています");
+            }
+        }
+        if(flag == 2){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void requestPermission() {
         ActivityCompat.requestPermissions(
                 this,
-                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE},
                 REQUEST_CODE
         );
     }
@@ -194,9 +247,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE && resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE  && resultCode == RESULT_OK) {
             // パーミッションが許可された場合の処理
-            saveImage();
+            Toast.makeText(this, "許可されました", Toast.LENGTH_SHORT).show();
         } else {
             // パーミッションが許可されなかった場合の処理
             Toast.makeText(this, "ストレージへのアクセスが許可されていません", Toast.LENGTH_SHORT).show();
@@ -204,37 +257,3 @@ public class MainActivity extends AppCompatActivity {
     }
 
 }
-
-/*	public void toLight() {
-		try {
-			BufferedImage readBuf=ImageIO.read(new File("C:\\pleiades\\2022-06\\workspace\\朝の人々1.jpg"));
-			int w = readBuf.getWidth();
-			int h = readBuf.getHeight();
-			BufferedImage writeBuf =
-			new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-
-			for(int y=0;y < h;y++){
-				for(int x=0;x < w;x++){
-					int c = readBuf.getRGB(x, y);
-					//シフト演算してr,g,bごとに0x??の形にそろえる
-					int r = (c & 0x00ff0000) >> 16;
-					int g = (c & 0x0000ff00) >> 8;
-					int b = c & 0x000000ff;
-					final int add = 0x40;
-					r += add;
-					if (r > 0xff) r = 0xff;
-					g += add;
-					if (g > 0xff) g = 0xff;
-					b += add;
-					if (b > 0xff) b = 0xff;
-					c = 0xff000000 | (r << 16) | (g << 8) | b;
-					writeBuf.setRGB(x,y,c);
-				}
-			}
-
-			ImageIO.write(writeBuf,"jpg", new File("C:\\pleiades\\2022-06\\workspace\\朝の人々1_明.jpg"));
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	}*/
