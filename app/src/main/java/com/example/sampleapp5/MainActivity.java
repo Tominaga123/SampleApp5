@@ -37,7 +37,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
-    ExifInterface exif;
+
     private TextView textView;
     private ImageView imageView;
     private Bitmap bmp;
@@ -58,8 +58,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        System.out.println("起動しました");
 
         if (checkPermission()) {
             Toast.makeText(this, "許可されています", Toast.LENGTH_SHORT).show();
@@ -125,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void openImage(Intent resultData){
+    private void openImage(Intent resultData){
         ParcelFileDescriptor pfDescriptor = null;
         try{
             Uri uri = resultData.getData();
@@ -137,8 +135,9 @@ public class MainActivity extends AppCompatActivity {
             if(pfDescriptor != null){
                 FileDescriptor fileDescriptor = pfDescriptor.getFileDescriptor();
                 bmp = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+                ExifInterface exif = new ExifInterface(fileDescriptor);
+                rotateImage(exif);
                 pfDescriptor.close();
-                rotateImage(uri);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -153,12 +152,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void rotateImage(ParcelFileDescriptor pfDescriptor){
+    void rotateImage(ExifInterface exif){
         try {
             // Exif メタデータを取得
-            System.out.println(pfDescriptor);
-            exif = new ExifInterface(pfDescriptor);
-            Toast.makeText(this, "回転するよ", Toast.LENGTH_SHORT).show();
             int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
 
             // 回転角度を計算
@@ -182,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
                 Matrix matrix = new Matrix();
                 matrix.postRotate(rotationAngle);
                 bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
-                Toast.makeText(this, "回転したよ", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -244,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                             Manifest.permission.READ_EXTERNAL_STORAGE},
+                        Manifest.permission.READ_EXTERNAL_STORAGE},
                 REQUEST_CODE
         );
     }
