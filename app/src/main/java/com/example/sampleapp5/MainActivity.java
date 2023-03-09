@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> resultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
+                System.out.println("registerForActivityResultメソッド");
                 if (result.getResultCode() == Activity.RESULT_OK) {
                     Intent resultData  = result.getData();
                     if (resultData  != null) {
@@ -62,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        System.out.println("onCreateメソッド");
         if (checkPermission()) {
             Toast.makeText(this, "許可されています", Toast.LENGTH_SHORT).show();
         } else {
@@ -81,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
         //「Get Image」を押した場合
         button.setOnClickListener( v -> {
+            System.out.println("button.setOnClickListenerメソッド");
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("image/*");
