@@ -27,6 +27,7 @@ import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,8 +40,11 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity {
 
     private TextView textView;
+    private TextView textView2;
+    private SeekBar seekBar;
     private ImageView imageView;
     private Bitmap bmp;
+    private Bitmap bmp2;
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
     private static final int REQUEST_CODE = 100;
     ActivityResultLauncher<Intent> resultLauncher = registerForActivityResult(
@@ -66,11 +70,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         textView = findViewById(R.id.text_view);
-        imageView = findViewById(R.id.image_view);
-
         Button button = findViewById(R.id.button);
         Button saveButton = findViewById(R.id.button2);
-        Button brighterButton = findViewById(R.id.button3);
+        textView2 = findViewById(R.id.text_view2);
+        seekBar = findViewById(R.id.seekbar);
+        imageView = findViewById(R.id.image_view);
+
+        // 初期値を表示
+        textView2.setText(seekBar.getProgress() + "");
 
         //「Get Image」を押した場合
         button.setOnClickListener( v -> {
@@ -89,14 +96,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //「Brighter」を押した場合
-        brighterButton.setOnClickListener(new View.OnClickListener() {
+        // 「SeekBar」が変化した場合
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onClick(View v) {
-                // もし編集不可なら、編集可能な Bitmap を複製
-                if (!bmp.isMutable()) {
-                    bmp = bmp.copy(Bitmap.Config.ARGB_8888, true);
-                }
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int i = seekBar.getProgress();
+                textView2.setText(i + "");
 
                 int w = bmp.getWidth();
                 int h = bmp.getHeight();
@@ -107,19 +112,35 @@ public class MainActivity extends AppCompatActivity {
                         int r = (c & 0x00ff0000) >> 16;
                         int g = (c & 0x0000ff00) >> 8;
                         int b = c & 0x000000ff;
-                        final int add = 0x40;
+                        final int add = i;
                         r += add;
-                        if (r > 0xff) r = 0xff;
+                        if (r > 0xff){
+                            r = 0xff;
+                        } else if (r < 0x00){
+                            r = 0x00;
+                        }
                         g += add;
-                        if (g > 0xff) g = 0xff;
+                        if (g > 0xff){
+                            g = 0xff;
+                        } else if (g < 0x00){
+                            g = 0x00;
+                        }
                         b += add;
-                        if (b > 0xff) b = 0xff;
+                        if (b > 0xff){
+                            b = 0xff;
+                        } else if (b < 0x00){
+                            b = 0x00;
+                        }
                         c = 0xff000000 | (r << 16) | (g << 8) | b;
-                        bmp.setPixel(x,y,c);
+                        bmp2.setPixel(x,y,c);
                     }
                 }
-                imageView.setImageBitmap(bmp);
+                imageView.setImageBitmap(bmp2);
             }
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {}
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
         });
     }
 
@@ -152,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void rotateImage(ExifInterface exif){
+    private void rotateImage(ExifInterface exif){
         try {
             // Exif メタデータを取得
             int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
@@ -185,6 +206,8 @@ public class MainActivity extends AppCompatActivity {
 
         // ImageView に Bitmap を設定
         imageView.setImageBitmap(bmp);
+        // 編集用の Bitmap を複製
+        bmp2 = bmp.copy(Bitmap.Config.ARGB_8888, true);
     }
 
     private void saveImage() {
