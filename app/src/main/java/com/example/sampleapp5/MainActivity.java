@@ -84,10 +84,14 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener( v -> {
             System.out.println("button.setOnClickListenerメソッド");
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            System.out.println("Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
+            System.out.println("intent.addCategory(Intent.CATEGORY_OPENABLE)");
             intent.setType("image/*");
+            System.out.println("intent.setType()");
 
             resultLauncher.launch(intent);
+            System.out.println("resultLauncher.launch(intent)");
         });
 
         //「Save Image」を押した場合
@@ -102,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                System.out.println("seekbarメソッド");
                 int i = seekBar.getProgress();
                 textView2.setText(i + "");
 
@@ -149,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
     private void openImage(Intent resultData){
         ParcelFileDescriptor pfDescriptor = null;
         try{
+            System.out.println("openImageメソッド");
             Uri uri = resultData.getData();
             // Uriを表示
             textView.setText(
@@ -177,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void rotateImage(ExifInterface exif){
         try {
+            System.out.println("rotateImageメソッド");
             // Exif メタデータを取得
             int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
 
@@ -213,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveImage() {
+        System.out.println("saveImageメソッド");
         BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
         Bitmap bitmap = drawable.getBitmap();
 
@@ -243,6 +251,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkPermission() {
+        System.out.println("checkPermissionメソッド");
         String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
         int result;
         int flag = 0;
@@ -261,6 +270,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestPermission() {
+        System.out.println("requestPermissionメソッド");
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -272,11 +282,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("onActivityResultメソッド");
         if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE  && resultCode == RESULT_OK) {
             // パーミッションが許可された場合の処理
             Toast.makeText(this, "許可されました", Toast.LENGTH_SHORT).show();
         } else {
             // パーミッションが許可されなかった場合の処理
+            System.out.println("requestCode : " + requestCode + "resultCode : " + resultCode);
             Toast.makeText(this, "ストレージへのアクセスが許可されていません", Toast.LENGTH_SHORT).show();
         }
     }
